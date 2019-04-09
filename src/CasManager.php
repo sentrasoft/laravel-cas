@@ -166,10 +166,13 @@ class CasManager {
      * @param string $callback_url the url to invoke when the authentication is completed
      * @return \Illuminate\Http\RedirectResponse
      */
-	public function authenticate($callback_url = '/home') {
+	public function authenticate($callback_url = '/cas/callback') {
 		if ( $this->isMasquerading() ) {
 			return redirect($callback_url);
 		}
+
+		if(empty($callback_url) || $callback_url == '/cas/callback')
+			$callback_url = url($callback_url);
 
 		if(phpCAS::isAuthenticated()) {
             return redirect($callback_url);
