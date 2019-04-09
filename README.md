@@ -51,8 +51,8 @@ Now add the alias in `config/app.php`.
 
 Add the middelware to your `Kernel.php` file or leverage your own:
 ```php
-'cas.auth'  => 'Sentrasoft\Cas\Middleware\Authenticate',
-'cas.guest' => 'Sentrasoft\Cas\Middleware\RedirectIfAuthenticated',
+'cas.auth'  => \Sentrasoft\Cas\Middleware\Authenticate::class,
+'cas.guest' => \Sentrasoft\Cas\Middleware\RedirectIfAuthenticated::class,
 ```
 
 Now publish the configuration `cas.php` file:
@@ -60,7 +60,7 @@ Now publish the configuration `cas.php` file:
 $ php artisan vendor:publish --provider="Sentrasoft\Cas\CasServiceProvider" --tag="config"
 ```
 
-Add new variables Environment below to your `.env`
+Add new environment variables below to your `.env`
 ```
 CAS_HOSTNAME=cas.example.com
 CAS_VALIDATION=https://cas.example.com/cas/p3/serviceValidate
@@ -157,14 +157,17 @@ curl -X POST https://yourapp.com/cas/logout
 
 #### Get User
 To retrieve authenticated credentials.
+
+> Not ID (integer), but given on the CAS login (username) form.
+
 ```php
-$uid = Cas::getUser();
+$uid = Cas::user()->id;
 ```
 
 #### Get User Attributes
-Get the attributes for for the currently connected user. This method can only be called after authenticated or an error wil be thrown.
+Get the attributes for for the currently connected user.
 ```php
-foreach (Cas::getAttributes() as $key => $value) {
+foreach (Cas::user()->getAttributes() as $key => $value) {
 	...
 }
 ```
@@ -172,7 +175,7 @@ foreach (Cas::getAttributes() as $key => $value) {
 #### Get User Attribute
 Retrieve a specific attribute by key name. The attribute returned can be either a string or an array based on matches.
 ```php
-$value = Cas::getAttribute('key');
+$value = Cas::user()->getAttribute('key');
 ```
 
 ## Support Us

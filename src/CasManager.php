@@ -1,9 +1,17 @@
 <?php namespace Sentrasoft\Cas;
 
-
+use Illuminate\Support\Manager;
 use phpCAS;
 
-class CasManager {
+class CasManager extends Manager implements Contracts\Factory
+{
+
+	/**
+     * The application instance.
+     *
+     * @var \Illuminate\Contracts\Foundation\Application
+     */
+    protected $app;
 
 	/**
 	 * Array for storing configuration settings.
@@ -21,10 +29,22 @@ class CasManager {
 	protected $_masquerading = false;
 
 	/**
+	 * String for storing CAS user.
+	 */
+	protected $_cas_user;
+
+	/**
+	 * Array for storing CAS user attributes.
+	 */
+	protected $_cas_user_attributes;
+
+	/**
 	 * @param array $config
 	 */
-	public function __construct( array $config ) {
-		$this->parseConfig( $config );
+	public function __construct($app, array $config ) {
+		$this->app = $app;
+		$this->parseConfig($config);
+
 		if ( $this->config['cas_debug'] === true ) {
 			phpCAS::setDebug();
 			phpCAS::log( 'Loaded configuration:' . PHP_EOL
@@ -66,6 +86,16 @@ class CasManager {
 			phpCAS::log( 'Masquerading as user: '
 			             . $this->config['cas_masquerade'] );
 		}
+	}
+
+	/**
+     * Get the default authentication driver name.
+     *
+     * @return string
+     */
+	public function getDefaultDriver()
+	{
+		return $this;
 	}
 
 	/**
@@ -199,10 +229,27 @@ class CasManager {
 	 */
 	public function user() {
 		if ( $this->isMasquerading() ) {
-			return $this->config['cas_masquerade'];
+			return (new CasUser)->fill([
+				'id' => $this->config['cas_masquerade'],
+                'attributes' => $this->attributes
+            ]);
 		}
 
-		return phpCAS::getUser();
+		$this->setUser();
+		return (new CasUser)->fill([
+			'id' => $this->_cas_user,
+			'attributes' => $this->_cas_user_attributes
+		]);
+	}
+
+	private function setUser()
+	{
+		if(phpCAS::checkAuthentication()) {
+			$this->_cas_user = phpCAS::getUser();
+	        $this->_cas_user_attributes = phpCAS::getAttributes();
+
+			session()->put('cas_user', $this->_cas_user);
+		}
 	}
 
 	public function getCurrentUser() {
@@ -220,7 +267,9 @@ class CasManager {
 	 */
 	public function getAttribute( $key ) {
 		if ( ! $this->isMasquerading() ) {
-			return phpCAS::getAttribute( $key );
+			if($this->check()) {
+				return phpCAS::getAttribute( $key );
+			}
 		}
 		if ( $this->hasAttribute( $key ) ) {
 			return $this->_attributes[ $key ];
@@ -241,7 +290,11 @@ class CasManager {
 			return array_key_exists( $key, $this->_attributes );
 		}
 
-		return phpCAS::hasAttribute( $key );
+		if($this->check()) {
+			return phpCAS::hasAttribute( $key );
+		}
+
+		return false;
 	}
 
 	/**
@@ -267,6 +320,11 @@ class CasManager {
 		if ( $url ) {
 			$params['url'] = $url;
 		}
+
+		if(session()->has('cas_user')) {
+            session()->forget('cas_user');
+        }
+
 		phpCAS::logout( $params );
 		exit;
 	}
@@ -288,9 +346,13 @@ class CasManager {
 	 * @return mixed
 	 */
 	public function getAttributes() {
-		// We don't error check because phpCAS has its own error handling.
-		return $this->isMasquerading() ? $this->_attributes
-			: phpCAS::getAttributes();
+		if($this->isMasquerading()) {
+			return $this->_attributes;
+		}
+
+		if($this->check()) {
+			return phpCAS::getAttributes();
+		}
 	}
 
 	/**
