@@ -158,16 +158,25 @@ class CasManager {
 	}
 
 	/**
-	 * Authenticates the user based on the current request.
-	 *
-	 * @return bool
-	 */
-	public function authenticate() {
+     * Redirect the user to the authentication page for the provider.
+     * When the authentication is performed the callback url is invoked.
+     * In that callback you can process the User and create a local entry
+     * in the database
+     *
+     * @param string $callback_url the url to invoke when the authentication is completed
+     * @return \Illuminate\Http\RedirectResponse
+     */
+	public function authenticate($callback_url = '/home') {
 		if ( $this->isMasquerading() ) {
-			return true;
+			return redirect($callback_url);
 		}
 
-		return phpCAS::forceAuthentication();
+		if(phpCAS::isAuthenticated()) {
+            return redirect($callback_url);
+        }
+        else {
+			return phpCAS::forceAuthentication($callback_url);
+        }
 	}
 
 	/**
