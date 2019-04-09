@@ -21,7 +21,7 @@ class CasServiceProvider extends ServiceProvider
     {
         $this->publishes([
             __DIR__ . '/../src/Config/cas.php' => config_path('cas.php'),
-        ]);
+        ], 'config');
     }
 
     /**
