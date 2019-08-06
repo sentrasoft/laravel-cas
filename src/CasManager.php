@@ -231,7 +231,7 @@ class CasManager extends Manager implements Contracts\Factory
 		if ( $this->isMasquerading() ) {
 			return (new CasUser)->fill([
 				'id' => $this->config['cas_masquerade'],
-                'attributes' => $this->attributes
+                'attributes' => $this->_attributes
             ]);
 		}
 
