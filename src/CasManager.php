@@ -122,10 +122,12 @@ class CasManager extends Manager implements Contracts\Factory
 			}
 		}
 
-		phpCAS::$method( $server_type, $this->config['cas_hostname'],
-			(int) $this->config['cas_port'],
-			$this->config['cas_uri'], $this->config['cas_control_session'] );
-
+		if ( ! phpCAS::isInitialized() ) {
+			phpCAS::$method( $server_type, $this->config['cas_hostname'],
+				(int) $this->config['cas_port'],
+				$this->config['cas_uri'], $this->config['cas_control_session'] );
+		}
+		
 		if ( $this->config['cas_enable_saml'] ) {
 			// Handle SAML logout requests that emanate from the CAS host exclusively.
 			// Failure to restrict SAML logout requests to authorized hosts could
